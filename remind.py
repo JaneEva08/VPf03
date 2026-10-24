@@ -3,6 +3,7 @@
 
 Использование:
   python remind.py --version v2 --schedule "Витамин D — 1 таблетка в 09:00 после еды"
+  python remind.py --version v2 --schedule "..." --out results/v2_api_run1.json
   python remind.py --check results/v2_run1.json     # только проверить готовый ответ
 """
 import argparse
@@ -79,6 +80,7 @@ def main():
     p.add_argument("--model", default="gpt-4o-mini")
     p.add_argument("--temperature", type=float, default=0.2)
     p.add_argument("--check", metavar="FILE", help="проверить готовый JSON-файл и выйти")
+    p.add_argument("--out", metavar="FILE", help="сохранить сырой ответ модели в файл")
     args = p.parse_args()
 
     if args.check:
@@ -87,6 +89,10 @@ def main():
         p.error("нужен --schedule или --check")
 
     raw = ask(args.version, args.schedule, args.model, args.temperature)
+    if args.out:
+        with open(args.out, "w", encoding="utf-8") as f:
+            f.write(raw)
+        print(f"Сырой ответ сохранён в {args.out}")
     try:
         data = json.loads(raw)
     except json.JSONDecodeError:
