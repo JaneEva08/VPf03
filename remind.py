@@ -49,7 +49,7 @@ def to_ics(data, day=None):
     """Календарный файл: каждый шаг — ежедневное событие со звуковым напоминанием."""
     day = day or datetime.date.today()
     stamp = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//VPf03 remind//RU", "CALSCALE:GREGORIAN"]
+    lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//pill-reminder-prompt//RU", "CALSCALE:GREGORIAN"]
     for step in data["steps"]:
         time_part, text = step.split(" — ", 1)
         hh, mm = time_part.split(":")
@@ -57,7 +57,7 @@ def to_ics(data, day=None):
         end = start + datetime.timedelta(minutes=15)
         lines += [
             "BEGIN:VEVENT",
-            f"UID:{uuid.uuid4()}@vpf03",
+            f"UID:{uuid.uuid4()}@pill-reminder-prompt",
             f"DTSTAMP:{stamp}",
             f"DTSTART:{start:%Y%m%dT%H%M%S}",
             f"DTEND:{end:%Y%m%dT%H%M%S}",
