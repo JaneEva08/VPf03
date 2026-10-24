@@ -19,21 +19,23 @@
 ```bash
 pip install openai
 export OPENAI_API_KEY=...
+export OPENAI_BASE_URL=https://aiprimetech.io/v1   # если ключ не от OpenAI, а от совместимого провайдера
 
 # сгенерировать план
-python remind.py --version v2 --schedule "Витамин D — 1 таблетка в 09:00 после еды; Магний — 1 таблетка в 21:00 перед сном"
+python remind.py --version v2 --model gpt-6-luna --schedule "Витамин D — 1 таблетка в 09:00 после еды; Магний — 1 таблетка в 21:00 перед сном" --out results/my_run.json
 
 # проверить готовый JSON-ответ (ключ не нужен)
-python remind.py --check results/v2_run1.json
+python remind.py --check results/v2_api_run1.json
 ```
 
-Параметры: `--version v1|v2`, `--model` (по умолчанию `gpt-4o-mini`), `--temperature` (по умолчанию 0.2). Скрипт собирает `messages` из `prompts/<версия>.json`, вызывает модель и проверяет ответ: валидный JSON, ключи `title`/`steps`/`notes`, формат шага «ЧЧ:ММ — …», не более трёх `notes`.
+Параметры: `--version v1|v2`, `--model` (по умолчанию `gpt-4o-mini`), `--temperature` (по умолчанию 0.2), `--out FILE` — сохранить сырой ответ. Скрипт собирает `messages` из `prompts/<версия>.json`, вызывает модель и проверяет ответ: валидный JSON, ключи `title`/`steps`/`notes`, формат шага «ЧЧ:ММ — …», не более трёх `notes`.
 
 ## Структура
 
 ```
 prompts/v1.json, v2.json   промпты: базовый и с few-shot примером
-results/*.json             сырые ответы: 3 прогона × 2 версии
+results/*_api_run*.json    ответы через API (gpt-6-luna, temperature 0.2): 3 прогона × 2 версии
+results/v*_run*.json       дополнительный раунд в Claude: 3 прогона × 2 версии
 remind.py                  генерация и проверка
 HOMEWORK.md                отчёт по ДЗ
 ```
