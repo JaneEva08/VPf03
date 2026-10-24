@@ -25,7 +25,13 @@ python remind.py --version v2 --schedule "Витамин D — 1 таблетк�
 
 # проверить готовый JSON-ответ (ключ не нужен)
 python remind.py --check results/v2_run1.json
+
+# получить настоящие напоминания: план -> файл календаря (ежедневно, со звуком)
+python remind.py --check results/v2_run1.json --ics plan.ics
+python remind.py --version v2 --schedule "..." --ics plan.ics
 ```
+
+Файл `plan.ics` открывается на телефоне или в календаре; напоминания придут в 09:00 и 21:00 каждый день.
 
 Параметры: `--version v1|v2`, `--model` (по умолчанию `gpt-4o-mini`), `--temperature` (по умолчанию 0.2). Скрипт собирает `messages` из `prompts/<версия>.json`, вызывает модель и проверяет ответ: валидный JSON, ключи `title`/`steps`/`notes`, формат шага «ЧЧ:ММ — …», не более трёх `notes`.
 

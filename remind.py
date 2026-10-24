@@ -4,12 +4,15 @@
 Использование:
   python remind.py --version v2 --schedule "Витамин D — 1 таблетка в 09:00 после еды"
   python remind.py --check results/v2_run1.json     # только проверить готовый ответ
+  python remind.py --check results/v2_run1.json --ics plan.ics   # + календарный файл
 """
 import argparse
+import datetime
 import json
 import os
 import re
 import sys
+import uuid
 
 PROMPTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "prompts")
 TIME_RE = re.compile(r"^([01]\d|2[0-3]):[0-5]\d — .+")
@@ -37,7 +40,47 @@ def validate(data):
     return problems
 
 
-def check(path):
+def ics_escape(text):
+    return text.replace("\\", "\\\\").replace(";", "\\;").replace(",", "\\,").replace("\n", "\\n")
+
+
+def to_ics(data, day=None):
+    """Календарный файл: каждый шаг — ежедневное событие со звуковым напоминанием."""
+    day = day or datetime.date.today()
+    stamp = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//VPf03 remind//RU", "CALSCALE:GREGORIAN"]
+    for step in data["steps"]:
+        time_part, text = step.split(" — ", 1)
+        hh, mm = time_part.split(":")
+        start = datetime.datetime.combine(day, datetime.time(int(hh), int(mm)))
+        end = start + datetime.timedelta(minutes=15)
+        lines += [
+            "BEGIN:VEVENT",
+            f"UID:{uuid.uuid4()}@vpf03",
+            f"DTSTAMP:{stamp}",
+            f"DTSTART:{start:%Y%m%dT%H%M%S}",
+            f"DTEND:{end:%Y%m%dT%H%M%S}",
+            "RRULE:FREQ=DAILY",
+            f"SUMMARY:{ics_escape('💊 ' + text)}",
+            f"DESCRIPTION:{ics_escape(data['title'])}",
+            "BEGIN:VALARM",
+            "ACTION:DISPLAY",
+            f"DESCRIPTION:{ics_escape(text)}",
+            "TRIGGER:PT0M",
+            "END:VALARM",
+            "END:VEVENT",
+        ]
+    lines.append("END:VCALENDAR")
+    return "\r\n".join(lines) + "\r\n"
+
+
+def save_ics(data, path):
+    with open(path, "w", encoding="utf-8", newline="") as f:
+        f.write(to_ics(data))
+    print(f"📅 Календарный файл: {path} (откройте на телефоне или в календаре)")
+
+
+def check(path, ics=None):
     with open(path, encoding="utf-8") as f:
         text = f.read()
     try:
@@ -50,6 +93,8 @@ def check(path):
         print(f"✗ {path}: " + "; ".join(problems))
         return 1
     print(f"✓ {path}: JSON валиден, steps={len(data['steps'])}, notes={len(data['notes'])}")
+    if ics:
+        save_ics(data, ics)
     return 0
 
 
@@ -79,10 +124,11 @@ def main():
     p.add_argument("--model", default="gpt-4o-mini")
     p.add_argument("--temperature", type=float, default=0.2)
     p.add_argument("--check", metavar="FILE", help="проверить готовый JSON-файл и выйти")
+    p.add_argument("--ics", metavar="FILE", help="сохранить план как календарный файл .ics (ежедневные напоминания)")
     args = p.parse_args()
 
     if args.check:
-        sys.exit(check(args.check))
+        sys.exit(check(args.check, args.ics))
     if not args.schedule:
         p.error("нужен --schedule или --check")
 
@@ -102,6 +148,8 @@ def main():
         print("  ⏰", s)
     for n in data["notes"]:
         print("  •", n)
+    if args.ics:
+        save_ics(data, args.ics)
 
 
 if __name__ == "__main__":
